@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/leep-frog/command"
@@ -60,10 +61,7 @@ func (n *notifier) Node() *command.Node {
 		fileArg,
 		command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
 			return []string{
-				"python",
-				"-c",
-				pythonFileContents,
-				fileArg.Get(d),
+				fmt.Sprintf("python -c %q %q", pythonFileContents, fileArg.Get(d)),
 			}, nil
 		}),
 	))
