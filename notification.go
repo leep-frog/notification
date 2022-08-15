@@ -49,7 +49,7 @@ if not os.path.isfile(p):
 # See the following answer for why this logic is needed:
 # https://stackoverflow.com/a/68937955/18162937
 if os.name == 'nt':
-  p = p.replace('\\', '\\\\', 1)
+  p = p.replace('\\\\', '\\\\\\\\', 1)
 
 playsound(p)
 `
