@@ -56,6 +56,7 @@ playsound(p)
 )
 
 func (n *notifier) Node() *command.Node {
+	// TODO: Eventually have other notification formats ??? (text to phone, slack, etc.) ???
 	return command.ShortcutNode("notifier-shortcuts", n, command.SerialNodes(
 		fileArg,
 		command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
