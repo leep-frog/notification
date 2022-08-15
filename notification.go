@@ -60,7 +60,7 @@ func (n *notifier) Node() *command.Node {
 		fileArg,
 		command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
 			return []string{
-				fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, fileArg.Get(d)),
+				fmt.Sprintf("python -c %q %q", pythonFileContents, fileArg.Get(d)),
 			}, nil
 		}),
 	))
