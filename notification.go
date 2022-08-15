@@ -2,7 +2,6 @@ package notification
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/leep-frog/command"
 	"github.com/leep-frog/command/sourcerer"
@@ -36,24 +35,24 @@ var (
 	fileArg = command.FileNode("FILE", "Audio file to play", &command.FileCompletor[string]{
 		FileTypes: []string{".wav", ".mp3"},
 	})
-	pythonFileContents = strings.Join([]string{
-		"from playsound import playsound",
-		"import os",
-		"import sys",
-		"",
-		"p = os.path.abspath(sys.argv[1])",
-		"if not os.path.isfile(p):",
-		"  # TODO: use problem matcher here?",
-		"  print('not a file')",
-		"  exit(0)",
-		"",
-		// See the following answer for why this logic is needed:
-		// https://stackoverflow.com/a/68937955/18162937
-		"if os.name == 'nt':",
-		`  p = p.replace('\\', '\\\\', 1)`,
-		"",
-		"playsound(p)",
-	}, "\n")
+	pythonFileContents = `
+from playsound import playsound
+import os
+import sys
+
+p = os.path.abspath(sys.argv[1])
+if not os.path.isfile(p):
+  # TODO: use problem matcher here?
+  print('not a file')
+  exit(0)
+
+# See the following answer for why this logic is needed:
+# https://stackoverflow.com/a/68937955/18162937
+if os.name == 'nt':
+  p = p.replace('\\', '\\\\', 1)
+
+playsound(p)
+`
 )
 
 func (n *notifier) Node() *command.Node {
@@ -61,7 +60,7 @@ func (n *notifier) Node() *command.Node {
 		fileArg,
 		command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
 			return []string{
-				fmt.Sprintf("python -c %q %q", pythonFileContents, fileArg.Get(d)),
+				fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, fileArg.Get(d)),
 			}, nil
 		}),
 	))
