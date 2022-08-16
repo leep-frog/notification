@@ -94,6 +94,9 @@ func TestComplete(t *testing.T) {
 				Want: []string{
 					"break.wav",
 					"error.wav",
+					"laser.wav",
+					"success.wav",
+					"warning.wav",
 					" ",
 				},
 			},

@@ -103,6 +103,8 @@ func getMediaDir(d *command.Data) error {
 func (n *notifier) Node() *command.Node {
 	// TODO: Eventually have other notification formats ??? (text to phone, slack, etc.) ???
 	return command.BranchNode(map[string]*command.Node{
+		// Note: built-in audio files obtained from VS Code audio files:
+		// https://github.com/microsoft/vscode/tree/main/src/vs/workbench/contrib/audioCues/browser/media
 		"built-in b": command.SerialNodes(
 			command.SimpleProcessor(func(i *command.Input, o command.Output, d *command.Data, ed *command.ExecuteData) error {
 				return getMediaDir(d)
@@ -119,5 +121,5 @@ func (n *notifier) Node() *command.Node {
 		command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
 			return n.executable(fileArg.Get(d))
 		}),
-	)))
+	)), command.DontCompleteSubcommands())
 }
