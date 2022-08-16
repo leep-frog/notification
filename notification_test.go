@@ -16,6 +16,10 @@ func filepathAbs(t *testing.T, path ...string) string {
 	return p
 }
 
+func executble(t *testing.T, filename string) []string {
+	return []string{fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, filepathAbs(t, "media", filename))}
+}
+
 func TestExecute(t *testing.T) {
 	for _, test := range []struct {
 		name string
@@ -33,9 +37,23 @@ func TestExecute(t *testing.T) {
 					fileArg.Name(): filepathAbs(t, "media", "break.wav"),
 				}},
 				WantExecuteData: &command.ExecuteData{
-					Executable: []string{
-						fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, filepathAbs(t, "media", "break.wav")),
-					},
+					Executable: executble(t, "break.wav"),
+				},
+			},
+		},
+		{
+			name: "works with built-in",
+			etc: &command.ExecuteTestCase{
+				Args: []string{
+					"b",
+					"error.wav",
+				},
+				WantData: &command.Data{Values: map[string]interface{}{
+					builtinArg.Name(): "error.wav",
+					mediaDir:          filepathAbs(t, "media"),
+				}},
+				WantExecuteData: &command.ExecuteData{
+					Executable: executble(t, "error.wav"),
 				},
 			},
 		},
@@ -48,6 +66,39 @@ func TestExecute(t *testing.T) {
 			test.etc.Node = n.Node()
 			command.ExecuteTest(t, test.etc)
 			command.ChangeTest(t, test.want, n)
+		})
+	}
+}
+
+func TestComplete(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		n    *notifier
+		ctc  *command.CompleteTestCase
+	}{
+		{
+			name: "completes built-in audio file names",
+			ctc: &command.CompleteTestCase{
+				Args: "cmd b ",
+				WantData: &command.Data{Values: map[string]interface{}{
+					builtinArg.Name(): "",
+					mediaDir:          filepathAbs(t, "media"),
+				}},
+				Want: []string{
+					"break.wav",
+					"error.wav",
+					" ",
+				},
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			n := test.n
+			if test.n == nil {
+				n = &notifier{}
+			}
+			test.ctc.Node = n.Node()
+			command.CompleteTest(t, test.ctc)
 		})
 	}
 }

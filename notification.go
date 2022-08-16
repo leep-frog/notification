@@ -2,6 +2,8 @@ package notification
 
 import (
 	"fmt"
+	"path/filepath"
+	"runtime"
 
 	"github.com/leep-frog/command"
 	"github.com/leep-frog/command/sourcerer"
@@ -31,10 +33,23 @@ func (n *notifier) ShortcutMap() map[string]map[string][]string {
 	return n.Shortcuts
 }
 
+const (
+	mediaDir = "MEDIA_DIR"
+)
+
 var (
-	fileArg = command.FileNode("FILE", "Audio file to play", &command.FileCompletor[string]{
-		FileTypes: []string{".wav", ".mp3"},
+	fileTypes = []string{".wav", ".mp3"}
+	fileArg   = command.FileNode("FILE", "Audio file to play", &command.FileCompletor[string]{
+		FileTypes: fileTypes,
 	})
+	builtinArg = command.Arg[string]("BUILTIN", "Built-in audio file to play", command.CompletorFromFunc(func(s string, d *command.Data) (*command.Completion, error) {
+		fc := &command.FileCompletor[string]{
+			FileTypes:         fileTypes,
+			Directory:         d.String(mediaDir),
+			IgnoreDirectories: true,
+		}
+		return fc.Complete(s, d)
+	}))
 	pythonFileContents = `
 from playsound import playsound
 import os
@@ -55,14 +70,39 @@ playsound(p)
 `
 )
 
+func (n *notifier) executable(file string) ([]string, error) {
+	return []string{
+		fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, file),
+	}, nil
+}
+
+func getMediaDir(d *command.Data) error {
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		return fmt.Errorf("failed to get notification directory")
+	}
+	d.Set(mediaDir, filepath.Join(filepath.Dir(thisFile), "media"))
+	return nil
+}
+
 func (n *notifier) Node() *command.Node {
 	// TODO: Eventually have other notification formats ??? (text to phone, slack, etc.) ???
-	return command.ShortcutNode("notifier-shortcuts", n, command.SerialNodes(
+	return command.BranchNode(map[string]*command.Node{
+		"built-in b": command.SerialNodes(
+			command.SimpleProcessor(func(i *command.Input, o command.Output, d *command.Data, ed *command.ExecuteData) error {
+				return getMediaDir(d)
+			}, func(i *command.Input, d *command.Data) (*command.Completion, error) {
+				return nil, getMediaDir(d)
+			}),
+			builtinArg,
+			command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
+				return n.executable(filepath.Join(d.String(mediaDir), builtinArg.Get(d)))
+			}),
+		),
+	}, command.ShortcutNode("notifier-shortcuts", n, command.SerialNodes(
 		fileArg,
 		command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
-			return []string{
-				fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, fileArg.Get(d)),
-			}, nil
+			return n.executable(fileArg.Get(d))
 		}),
-	))
+	)))
 }
