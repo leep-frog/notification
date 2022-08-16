@@ -17,7 +17,11 @@ func filepathAbs(t *testing.T, path ...string) string {
 }
 
 func executble(t *testing.T, filename string) []string {
-	return []string{fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, filepathAbs(t, "media", filename))}
+	absFile := filepathAbs(t, "media", filename)
+	return []string{
+		fmt.Sprintf(`cp %q "TEMP_DIR"`, absFile),
+		fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, filepath.Join("TEMP_DIR", filename)),
+	}
 }
 
 func TestExecute(t *testing.T) {
@@ -59,6 +63,9 @@ func TestExecute(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			command.StubValue(t, &mkTempDir, func(string, string) (string, error) {
+				return "TEMP_DIR", nil
+			})
 			n := test.n
 			if test.n == nil {
 				n = &notifier{}
@@ -93,6 +100,9 @@ func TestComplete(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			command.StubValue(t, &mkTempDir, func(string, string) (string, error) {
+				return "TEMP_DIR", nil
+			})
 			n := test.n
 			if test.n == nil {
 				n = &notifier{}

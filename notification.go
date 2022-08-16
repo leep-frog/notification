@@ -2,6 +2,7 @@ package notification
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 
@@ -70,9 +71,23 @@ playsound(p)
 `
 )
 
+var (
+	// variable so it can be stubbed out for testing.
+	mkTempDir = os.MkdirTemp
+)
+
 func (n *notifier) executable(file string) ([]string, error) {
+	// There are issues if certain characters (e.g. '@') are in the full path.
+	// This is always the case with built-in audio files (since go module folders
+	// include '@version' as part of the name).
+	// By copying to a temporary directory, this no longer becomes an issue.
+	dir, err := mkTempDir("", "leep-frog-notification")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp directory for notification: %v", err)
+	}
 	return []string{
-		fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, file),
+		fmt.Sprintf("cp %q %q", file, dir),
+		fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, filepath.Join(dir, filepath.Base(file))),
 	}, nil
 }
 
