@@ -87,7 +87,7 @@ func (n *notifier) executable(file string) ([]string, error) {
 	}
 	return []string{
 		fmt.Sprintf("cp %q %q", file, dir),
-		fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, filepath.Join(dir, filepath.Base(file))),
+		fmt.Sprintf("python3 -c \"%s\" %q", pythonFileContents, filepath.Join(dir, filepath.Base(file))),
 	}, nil
 }
 

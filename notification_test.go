@@ -20,7 +20,7 @@ func executble(t *testing.T, filename string) []string {
 	absFile := filepathAbs(t, "media", filename)
 	return []string{
 		fmt.Sprintf(`cp %q "TEMP_DIR"`, absFile),
-		fmt.Sprintf("python -c \"%s\" %q", pythonFileContents, filepath.Join("TEMP_DIR", filename)),
+		fmt.Sprintf("python3 -c \"%s\" %q", pythonFileContents, filepath.Join("TEMP_DIR", filename)),
 	}
 }
 
