@@ -40,11 +40,11 @@ const (
 
 var (
 	fileTypes = []string{".wav", ".mp3"}
-	fileArg   = command.FileNode("FILE", "Audio file to play", &command.FileCompletor[string]{
+	fileArg   = command.FileNode("FILE", "Audio file to play", &command.FileCompleter[string]{
 		FileTypes: fileTypes,
 	})
-	builtinArg = command.Arg[string]("BUILTIN", "Built-in audio file to play", command.CompletorFromFunc(func(s string, d *command.Data) (*command.Completion, error) {
-		fc := &command.FileCompletor[string]{
+	builtinArg = command.Arg[string]("BUILTIN", "Built-in audio file to play", command.CompleterFromFunc(func(s string, d *command.Data) (*command.Completion, error) {
+		fc := &command.FileCompleter[string]{
 			FileTypes:         fileTypes,
 			Directory:         d.String(mediaDir),
 			IgnoreDirectories: true,
@@ -102,6 +102,17 @@ func getMediaDir(d *command.Data) error {
 
 func (n *notifier) Node() *command.Node {
 	// TODO: Eventually have other notification formats ??? (text to phone, slack, etc.) ???
+	return command.BranchNode(map[string]*command.Node{
+		"slack": n.slackNode(),
+		"audio": n.audioNode(),
+	}, nil)
+}
+
+func (n *notifier) slackNode() *command.Node {
+	return command.SerialNodes()
+}
+
+func (n *notifier) audioNode() *command.Node {
 	return command.BranchNode(map[string]*command.Node{
 		// Note: built-in audio files obtained from VS Code audio files:
 		// https://github.com/microsoft/vscode/tree/main/src/vs/workbench/contrib/audioCues/browser/media
