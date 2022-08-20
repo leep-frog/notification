@@ -109,7 +109,8 @@ func (n *notifier) Node() *command.Node {
 }
 
 func (n *notifier) slackNode() *command.Node {
-	return command.SerialNodes()
+	return nil
+	//return command.SerialNodes()
 }
 
 func (n *notifier) audioNode() *command.Node {
