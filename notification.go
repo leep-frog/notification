@@ -1,10 +1,16 @@
 package notification
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/leep-frog/command"
 	"github.com/leep-frog/command/sourcerer"
@@ -74,6 +80,13 @@ playsound(p)
 var (
 	// variable so it can be stubbed out for testing.
 	mkTempDir = os.MkdirTemp
+
+	slackURL  = command.Arg[string]("URL", "Slack URL to which to send messages")
+	slackText = command.ListArg[string]("TEXT", "Text to send", 1, command.UnboundedList)
+)
+
+const (
+	contentType = "application/json"
 )
 
 func (n *notifier) executable(file string) ([]string, error) {
@@ -103,21 +116,65 @@ func getMediaDir(d *command.Data) error {
 func (n *notifier) Node() *command.Node {
 	// TODO: Eventually have other notification formats ??? (text to phone, slack, etc.) ???
 	return command.BranchNode(map[string]*command.Node{
-		"slack": n.slackNode(),
-		"audio": n.audioNode(),
+		"slack s": n.slackNode(),
+		"audio a": n.audioNode(),
 	}, nil)
 }
 
-func (n *notifier) slackNode() *command.Node {
-	return nil
-	//return command.SerialNodes()
+type SlackMessage struct {
+	Text string `json:"text"`
 }
+
+func (n *notifier) slackNode() *command.Node {
+	return command.ShortcutNode("slack-shortcuts", n, command.SerialNodes(command.SerialNodes(
+		command.Description("Send a slack message"),
+		slackURL,
+		slackText,
+		command.ExecuteErrNode(func(o command.Output, d *command.Data) error {
+			client := getHTTPClient()
+			msg := &SlackMessage{strings.Join(slackText.Get(d), " ")}
+
+			data, err := json.Marshal(msg)
+			if err != nil {
+				return o.Annotatef(err, "failed to marhsal object to json")
+			}
+
+			resp, err := client.Post(slackURL.Get(d), contentType, bytes.NewBuffer(data))
+			if err != nil {
+				return o.Annotatef(err, "slack http post failed")
+			}
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return o.Annotatef(err, "failed to read response body")
+			}
+
+			if resp.StatusCode != 200 {
+				return o.Stderrf("failed with status code %d:\n%v\n", resp.StatusCode, string(body))
+			}
+
+			return nil
+		}),
+	)))
+}
+
+type httpInterface interface {
+	Post(string, string, io.Reader) (*http.Response, error)
+}
+
+var (
+	// stubbed out for testing purposes
+	getHTTPClient = func() httpInterface {
+		return &http.Client{}
+	}
+)
 
 func (n *notifier) audioNode() *command.Node {
 	return command.BranchNode(map[string]*command.Node{
 		// Note: built-in audio files obtained from VS Code audio files:
 		// https://github.com/microsoft/vscode/tree/main/src/vs/workbench/contrib/audioCues/browser/media
 		"built-in b": command.SerialNodes(
+			command.Description("Play a built-in audio file"),
 			command.SimpleProcessor(func(i *command.Input, o command.Output, d *command.Data, ed *command.ExecuteData) error {
 				return getMediaDir(d)
 			}, func(i *command.Input, d *command.Data) (*command.Completion, error) {
@@ -128,7 +185,8 @@ func (n *notifier) audioNode() *command.Node {
 				return n.executable(filepath.Join(d.String(mediaDir), builtinArg.Get(d)))
 			}),
 		),
-	}, command.ShortcutNode("notifier-shortcuts", n, command.SerialNodes(
+	}, command.ShortcutNode("audio-shortcuts", n, command.SerialNodes(
+		command.Description("Play the provided audio file"),
 		fileArg,
 		command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
 			return n.executable(fileArg.Get(d))
