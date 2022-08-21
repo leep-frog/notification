@@ -90,8 +90,8 @@ const (
 )
 
 // SlackAliaser returns an aliaser to a specific slack url
-func SlackAliaser(alias, url string) sourcerer.Aliaser {
-	return *sourcerer.NewAliaser(alias, "n", "slack", url)
+func SlackAliaser(alias, url string) *sourcerer.Aliaser {
+	return sourcerer.NewAliaser(alias, "n", "slack", url)
 }
 
 func (n *notifier) executable(file string) ([]string, error) {
