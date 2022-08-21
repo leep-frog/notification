@@ -64,7 +64,6 @@ import sys
 
 p = os.path.abspath(sys.argv[1])
 if not os.path.isfile(p):
-  # TODO: use problem matcher here?
   print('not a file')
   exit(0)
 
@@ -119,7 +118,6 @@ func getMediaDir(d *command.Data) error {
 }
 
 func (n *notifier) Node() *command.Node {
-	// TODO: Eventually have other notification formats ??? (text to phone, slack, etc.) ???
 	return command.BranchNode(map[string]*command.Node{
 		"slack s": n.slackNode(),
 		"audio a": n.audioNode(),
