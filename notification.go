@@ -89,6 +89,11 @@ const (
 	contentType = "application/json"
 )
 
+// SlackAliaser returns an aliaser to a specific slack url
+func SlackAliaser(alias, url string) sourcerer.Aliaser {
+	return *sourcerer.NewAliaser(alias, "n", "slack", url)
+}
+
 func (n *notifier) executable(file string) ([]string, error) {
 	// There are issues if certain characters (e.g. '@') are in the full path.
 	// This is always the case with built-in audio files (since go module folders
