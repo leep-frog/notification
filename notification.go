@@ -118,10 +118,12 @@ func getMediaDir(d *command.Data) error {
 }
 
 func (n *notifier) Node() *command.Node {
-	return command.BranchNode(map[string]*command.Node{
-		"slack s": n.slackNode(),
-		"audio a": n.audioNode(),
-	}, nil)
+	return command.AsNode(&command.BranchNode{
+		Branches: map[string]*command.Node{
+			"slack s": n.slackNode(),
+			"audio a": n.audioNode(),
+		},
+	})
 }
 
 type SlackMessage struct {
@@ -133,7 +135,7 @@ func (n *notifier) slackNode() *command.Node {
 		command.Description("Send a slack message"),
 		slackURL,
 		slackText,
-		command.ExecuteErrNode(func(o command.Output, d *command.Data) error {
+		&command.ExecutorProcessor{F: func(o command.Output, d *command.Data) error {
 			client := getHTTPClient()
 			msg := &SlackMessage{strings.Join(slackText.Get(d), " ")}
 
@@ -157,7 +159,7 @@ func (n *notifier) slackNode() *command.Node {
 			}
 
 			return nil
-		}),
+		}},
 	)))
 }
 
@@ -173,26 +175,30 @@ var (
 )
 
 func (n *notifier) audioNode() *command.Node {
-	return command.BranchNode(map[string]*command.Node{
-		// Note: built-in audio files obtained from VS Code audio files:
-		// https://github.com/microsoft/vscode/tree/main/src/vs/workbench/contrib/audioCues/browser/media
-		"built-in b": command.SerialNodes(
-			command.Description("Play a built-in audio file"),
-			command.SimpleProcessor(func(i *command.Input, o command.Output, d *command.Data, ed *command.ExecuteData) error {
-				return getMediaDir(d)
-			}, func(i *command.Input, d *command.Data) (*command.Completion, error) {
-				return nil, getMediaDir(d)
-			}),
-			builtinArg,
+	return command.AsNode(&command.BranchNode{
+		Branches: map[string]*command.Node{
+			// Note: built-in audio files obtained from VS Code audio files:
+			// https://github.com/microsoft/vscode/tree/main/src/vs/workbench/contrib/audioCues/browser/media
+			"built-in b": command.SerialNodes(
+				command.Description("Play a built-in audio file"),
+				command.SimpleProcessor(func(i *command.Input, o command.Output, d *command.Data, ed *command.ExecuteData) error {
+					return getMediaDir(d)
+				}, func(i *command.Input, d *command.Data) (*command.Completion, error) {
+					return nil, getMediaDir(d)
+				}),
+				builtinArg,
+				command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
+					return n.executable(filepath.Join(d.String(mediaDir), builtinArg.Get(d)))
+				}),
+			),
+		},
+		Default: command.ShortcutNode("audio-shortcuts", n, command.SerialNodes(
+			command.Description("Play the provided audio file"),
+			fileArg,
 			command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
-				return n.executable(filepath.Join(d.String(mediaDir), builtinArg.Get(d)))
+				return n.executable(fileArg.Get(d))
 			}),
-		),
-	}, command.ShortcutNode("audio-shortcuts", n, command.SerialNodes(
-		command.Description("Play the provided audio file"),
-		fileArg,
-		command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
-			return n.executable(fileArg.Get(d))
-		}),
-	)), command.DontCompleteSubcommands())
+		)),
+		DefaultCompletion: true,
+	})
 }
