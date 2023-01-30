@@ -117,20 +117,20 @@ func getMediaDir(d *command.Data) error {
 	return nil
 }
 
-func (n *notifier) Node() *command.Node {
-	return command.AsNode(&command.BranchNode{
-		Branches: map[string]*command.Node{
+func (n *notifier) Node() command.Node {
+	return &command.BranchNode{
+		Branches: map[string]command.Node{
 			"slack s": n.slackNode(),
 			"audio a": n.audioNode(),
 		},
-	})
+	}
 }
 
 type SlackMessage struct {
 	Text string `json:"text"`
 }
 
-func (n *notifier) slackNode() *command.Node {
+func (n *notifier) slackNode() command.Node {
 	return command.ShortcutNode("slack-shortcuts", n, command.SerialNodes(command.SerialNodes(
 		command.Description("Send a slack message"),
 		slackURL,
@@ -174,9 +174,9 @@ var (
 	}
 )
 
-func (n *notifier) audioNode() *command.Node {
-	return command.AsNode(&command.BranchNode{
-		Branches: map[string]*command.Node{
+func (n *notifier) audioNode() command.Node {
+	return &command.BranchNode{
+		Branches: map[string]command.Node{
 			// Note: built-in audio files obtained from VS Code audio files:
 			// https://github.com/microsoft/vscode/tree/main/src/vs/workbench/contrib/audioCues/browser/media
 			"built-in b": command.SerialNodes(
@@ -200,5 +200,5 @@ func (n *notifier) audioNode() *command.Node {
 			}),
 		)),
 		DefaultCompletion: true,
-	})
+	}
 }
