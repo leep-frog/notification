@@ -46,7 +46,7 @@ const (
 
 var (
 	fileTypes = []string{".wav", ".mp3"}
-	fileArg   = command.FileNode("FILE", "Audio file to play", &command.FileCompleter[string]{
+	fileArg   = command.FileArgument("FILE", "Audio file to play", &command.FileCompleter[string]{
 		FileTypes: fileTypes,
 	})
 	builtinArg = command.Arg[string]("BUILTIN", "Built-in audio file to play", command.CompleterFromFunc(func(s string, d *command.Data) (*command.Completion, error) {
@@ -187,7 +187,7 @@ func (n *notifier) audioNode() command.Node {
 					return nil, getMediaDir(d)
 				}),
 				builtinArg,
-				command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
+				command.ExecutableProcessor(func(o command.Output, d *command.Data) ([]string, error) {
 					return n.executable(filepath.Join(d.String(mediaDir), builtinArg.Get(d)))
 				}),
 			),
@@ -195,7 +195,7 @@ func (n *notifier) audioNode() command.Node {
 		Default: command.ShortcutNode("audio-shortcuts", n, command.SerialNodes(
 			command.Description("Play the provided audio file"),
 			fileArg,
-			command.ExecutableNode(func(o command.Output, d *command.Data) ([]string, error) {
+			command.ExecutableProcessor(func(o command.Output, d *command.Data) ([]string, error) {
 				return n.executable(fileArg.Get(d))
 			}),
 		)),
